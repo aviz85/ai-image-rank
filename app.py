@@ -23,21 +23,16 @@ def generate_image_descriptions(dream):
     # Construct the prompt to get descriptions in a JSON format with a few-shot example
     example_json = {
         "descriptions": [
-            "A vivid scene of swimming with dolphins in a clear blue ocean.",
-            "A close-up of a dolphin smiling while jumping out of the water.",
-            "A serene underwater view with dolphins swimming gracefully.",
-            "A person riding on a dolphin's back in the open sea.",
-            "A playful group of dolphins splashing around in the ocean.",
-            "A sunset view with dolphins silhouetted against the sky.",
-            "A diver and dolphins interacting underwater.",
-            "A panoramic view of dolphins leaping in unison.",
-            "A tranquil beach scene with dolphins in the distance.",
-            "An artistic rendering of dolphins in a fantasy ocean."
+            "A misty forest with sunlight streaming through the trees, creating an ethereal glow.",
+            "A tranquil woodland path lined with glowing mushrooms and luminescent flowers.",
+            "A celestial ocean with waves reflecting the colors of a nebula in the sky.",
+            "A futuristic cityscape hovering among fluffy white clouds in a bright blue sky.",
+            "An ancient library filled with towering bookshelves and floating lanterns."
         ]
     }
     
     prompt = f"""
-    Generate 10 different image descriptions for the dream "{dream}" in JSON format.
+    Generate 10 different image descriptions for the dream "{dream}" in JSON format. Each description should be ambient, thematic, and conceptually rich while maintaining photorealism. Avoid explicit mention of any man or woman in the scene. The descriptions should evoke the feel and idea of fulfilling the dream from the point of view of the dreamer.
     Example format:
     {json.dumps(example_json, indent=4)}
     """
