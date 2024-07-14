@@ -23,16 +23,16 @@ def generate_image_descriptions(dream):
     # Construct the prompt to get descriptions in a JSON format with a few-shot example
     example_json = {
         "descriptions": [
-            "A misty forest with sunlight streaming through the trees, creating an ethereal glow.",
-            "A tranquil woodland path lined with glowing mushrooms and luminescent flowers.",
-            "A celestial ocean with waves reflecting the colors of a nebula in the sky.",
-            "A futuristic cityscape hovering among fluffy white clouds in a bright blue sky.",
-            "An ancient library filled with towering bookshelves and floating lanterns."
+            "A misty forest with sunlight streaming through the trees, creating an ethereal glow, symbolizing the journey towards achieving a peaceful and fulfilling life.",
+            "A tranquil woodland path lined with glowing mushrooms and luminescent flowers, representing the steps taken towards realizing one's dreams.",
+            "A celestial ocean with waves reflecting the colors of a nebula in the sky, illustrating the boundless potential and wonder of achieving a dream.",
+            "A futuristic cityscape hovering among fluffy white clouds in a bright blue sky, depicting the ultimate achievement of a high-tech, dream-like future.",
+            "An ancient library filled with towering bookshelves and floating lanterns, signifying the wealth of knowledge and enlightenment gained through pursuing one's dreams."
         ]
     }
     
     prompt = f"""
-    Generate 10 different image descriptions for the dream "{dream}" in JSON format. Each description should be ambient, thematic, and conceptually rich while maintaining photorealism. Avoid explicit mention of any man or woman in the scene. The descriptions should evoke the feel and idea of fulfilling the dream from the point of view of the dreamer.
+    Generate 10 different image descriptions for the dream "{dream}" in JSON format. Each description should be ambient, thematic, and conceptually rich while maintaining photorealism. Avoid explicit mention of any man or woman in the scene. The descriptions should evoke the feel and idea of fulfilling the dream from the point of view of the dreamer, capturing the essence of achieving the dream.
     Example format:
     {json.dumps(example_json, indent=4)}
     """
@@ -60,7 +60,7 @@ def generate_image_descriptions(dream):
         descriptions = []
 
     return descriptions
-
+    
 def create_image(prompt):
     input = {"prompt": prompt}
     output = replicate.run(
