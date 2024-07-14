@@ -1,87 +1,92 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory
-import json
-import os
+from flask import Flask, render_template, request, jsonify
+from groq import Groq
+from dotenv import load_dotenv
+import os, json
+import replicate
+
+load_dotenv()
+
+# Initialize the Groq and Replicate clients
+GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+REPLICATE_API_TOKEN = os.getenv('REPLICATE_API_TOKEN')
+
+if GROQ_API_KEY is None:
+    raise ValueError("GROQ_API_KEY not found in environment variables.")
+if REPLICATE_API_TOKEN is None:
+    raise ValueError("REPLICATE_API_TOKEN not found in environment variables.")
+
+groq_client = Groq(api_key=GROQ_API_KEY)
 
 app = Flask(__name__)
 
-# Configure the upload folder
-UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+def generate_image_descriptions(dream):
+    # Construct the prompt to get descriptions in a JSON format with a few-shot example
+    example_json = {
+        "descriptions": [
+            "A vivid scene of swimming with dolphins in a clear blue ocean.",
+            "A close-up of a dolphin smiling while jumping out of the water.",
+            "A serene underwater view with dolphins swimming gracefully.",
+            "A person riding on a dolphin's back in the open sea.",
+            "A playful group of dolphins splashing around in the ocean.",
+            "A sunset view with dolphins silhouetted against the sky.",
+            "A diver and dolphins interacting underwater.",
+            "A panoramic view of dolphins leaping in unison.",
+            "A tranquil beach scene with dolphins in the distance.",
+            "An artistic rendering of dolphins in a fantasy ocean."
+        ]
+    }
+    
+    prompt = f"""
+    Generate 10 different image descriptions for the dream "{dream}" in JSON format.
+    Example format:
+    {json.dumps(example_json, indent=4)}
+    """
+    
+    response = groq_client.chat.completions.create(
+        messages=[{"role": "user", "content": prompt}],
+        model="llama3-70b-8192",
+        temperature=1,
+        max_tokens=1024,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0
+    )
 
-# Path to the metadata JSON file
-METADATA_FILE = 'metadata.json'
+    # Extract and clean the response
+    raw_output = response.choices[0].message.content.strip()
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/get_data')
-def get_data():
-    try:
-        with open(METADATA_FILE, 'r') as f:
-            metadata = json.load(f)
-        
-        with open('models.json', 'r') as f:
-            models_data = json.load(f)
-        
-        models = [model['name'] for model in models_data['models']]
-        dreams = list(set(item['dream'] for item in metadata))
-        prompt_types = ['POV', 'Theme']
-        
-        return jsonify({
-            'metadata': metadata,
-            'models': models,
-            'dreams': dreams,
-            'prompt_types': prompt_types
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/rate', methods=['POST'])
-def rate():
-    data = request.json
-    filename = data['filename']
-    rating = data['rating']
+    # Assume the response is a JSON-like string and clean it
+    cleaned_output = raw_output[raw_output.find("{"):raw_output.rfind("}")+1]
     
     try:
-        with open(METADATA_FILE, 'r') as f:
-            metadata = json.load(f)
-        
-        for item in metadata:
-            if item['filename'] == filename:
-                item['rating'] = rating
-                break
-        
-        with open(METADATA_FILE, 'w') as f:
-            json.dump(metadata, f, indent=2)
-        
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        descriptions_dict = json.loads(cleaned_output)
+        descriptions = descriptions_dict.get("descriptions", [])
+    except json.JSONDecodeError:
+        descriptions = []
 
-@app.route('/uploads/<filename>')
-def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    return descriptions
 
-@app.route('/top_models')
-def top_models():
-    try:
-        with open(METADATA_FILE, 'r') as f:
-            metadata = json.load(f)
-        
-        model_ratings = {}
-        for item in metadata:
-            if item['rating'] > 0:
-                if item['model'] not in model_ratings:
-                    model_ratings[item['model']] = []
-                model_ratings[item['model']].append(item['rating'])
-        
-        avg_ratings = {model: sum(ratings) / len(ratings) for model, ratings in model_ratings.items()}
-        sorted_models = sorted(avg_ratings.items(), key=lambda x: x[1], reverse=True)
-        
-        return jsonify(sorted_models)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+def create_image(prompt):
+    input = {"prompt": prompt}
+    output = replicate.run(
+        "playgroundai/playground-v2.5-1024px-aesthetic:a45f82a1382bed5c7aeb861dac7c7d191b0fdf74d8d57c4a0e6ed7d4d0bf7d24",
+        input=input
+    )
+    return output[0]
 
-if __name__ == '__main__':
+@app.route("/", methods=["GET", "POST"])
+def index():
+    if request.method == "POST":
+        dream = request.form.get("dream")
+        descriptions = generate_image_descriptions(dream)
+        return render_template("index.html", dream=dream, descriptions=descriptions)
+    return render_template("index.html")
+
+@app.route("/create_image", methods=["POST"])
+def create_image_route():
+    description = request.form.get("description")
+    image_url = create_image(description)
+    return jsonify({"image_url": image_url})
+
+if __name__ == "__main__":
     app.run(debug=True)
